@@ -1,3 +1,6 @@
+# This program works in the console by presenting the user with a menu allowing them to choose between 4 preset options
+# and being able to exit by choosing 5
+
 #imports
 from workout import Workout
 from tracker import WorkoutTracker
@@ -32,7 +35,7 @@ def get_volume(tracker):
     else:
         print("No saved workouts for this exercise.")
 
-#input validation loop
+# This main function prints the menu and calls any functions necessary based on the users choice
 def main():
     tracker = WorkoutTracker()
     while True:

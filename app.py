@@ -6,10 +6,12 @@ from datetime import datetime
 app = Flask(__name__)
 tracker = WorkoutTracker()
 
+# Shows all the saved workouts in the database
 @app.route('/workouts', methods=['GET'])
 def get_workouts():
     return jsonify(tracker.get_all())
 
+# Allows a user to input their workouts
 @app.route('/workouts', methods= ['POST'])
 def add_workout():
     data = request.get_json()
@@ -17,6 +19,7 @@ def add_workout():
     tracker.add_workout(w)
     return jsonify({'message' : 'Workout saved!'})
 
+# Shows the Personal Record exercise
 @app.route('/workouts/pr/<exercise>', methods=['GET'])
 def get_pr(exercise):
     pr = tracker.get_pr(exercise)
@@ -25,6 +28,7 @@ def get_pr(exercise):
     pr_dict = pr.to_dict()
     return jsonify(pr_dict)
 
+# Shows total volume with different exercises
 @app.route('/workouts/volume/<exercise>', methods=['GET'])
 def get_volume(exercise):
     volume = tracker.total_volume(exercise)
