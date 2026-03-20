@@ -22,10 +22,7 @@ class WorkoutTracker:
 
     def get_by_exercise(self, exercise_name):
         return [workout for workout in self.workouts if workout.exercise.lower() == exercise_name.lower()]
-        #for workout in self.workouts:
-            #if workout.exercise.lower() == exercise_name.lower():
-                #same_exercise.append(workout)
-        #return same_exercise
+
     def get_pr(self, exercise_name):
         all_workouts = self.get_by_exercise(exercise_name)
         if not all_workouts:
@@ -40,3 +37,6 @@ class WorkoutTracker:
             return None
         else:
             return sum(workout.sets * workout.reps * workout.weight for workout in all_workouts)
+
+    def get_all(self):
+        return [w.to_dict() for w in self.workouts]

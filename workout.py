@@ -8,3 +8,7 @@ class Workout:
 
     def __str__(self):
         return f"{self.date} | {self.exercise} | {self.sets} sets | {self.reps} reps | {self.weight} lbs"
+
+    def to_dict(self):
+        return {'exercise': self.exercise, 'sets': self.sets, 'reps': self.reps, 'weight': self.weight,
+                'date': self.date}
