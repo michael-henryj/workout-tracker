@@ -2,8 +2,9 @@ from flask import Flask, jsonify, request
 from tracker import WorkoutTracker
 from workout import Workout
 from datetime import datetime
-
+from flask_cors import CORS
 app = Flask(__name__)
+CORS(app)
 tracker = WorkoutTracker()
 
 # Shows all the saved workouts in the database

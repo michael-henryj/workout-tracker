@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>Workout Tracker</title>
+        <style>
+            /* CSS goes here */
+        </style>
+    </head>
+    <body>
+    <h1>Workout Tracker</h1>
+    <input type="text" id="exercise" placeholder="Exercise name">
+    <input type="number" id="sets" placeholder="Number of sets">
+    <input type="number" id="reps" placeholder="Number or reps">
+    <input type="number" id="weight" placeholder="Weight (lbs)">
+    <button onclick="addWorkout()">Add Workout</button>
+        <script>
+            const addWorkout = () => {
+            fetch('http://127.0.0.1:5000/workouts', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    exercise: document.getElementById('exercise').value,
+                    sets: document.getElementById('sets').value,
+                    reps: document.getElementById('reps').value,
+                    weight: document.getElementById('weight').value
+                 })
+            })
+            .then(response => response.json())
+            .then(data => console.log(data.message))
+            return;
+            }
+        </script>
+    </body>
+</html>
