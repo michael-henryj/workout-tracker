@@ -8,18 +8,24 @@
     </head>
     <body>
     <h1>Workout Tracker</h1>
+
+    <!--Saving workouts functionality-->
     <input type="text" id="exercise" placeholder="Exercise name">
-    <input type="number" id="sets" placeholder="Number of sets">
-    <input type="number" id="reps" placeholder="Number or reps">
-    <input type="number" id="weight" placeholder="Weight (lbs)">
+    <input type="number" min="0" id="sets" placeholder="Number of sets">
+    <input type="number" min="0" id="reps" placeholder="Number or reps">
+    <input type="number" min="0" id="weight" placeholder="Weight (lbs)">
     <button onclick="addWorkout()">Add Workout</button>
+    <p id="workout-message"></p>
     <button onclick = "getWorkouts()">Load Workouts</button>
     <ul id = "workout-list"></ul>
+
+    <!--Personal record functionality-->
     <h2>Find Personal Record</h2>
     <input type = "text" id = "pr-exercise" placeholder="Exercise name">
     <button onclick="getPR()">Find PR</button>
     <p id="pr-result"></p>
 
+    <!--Volume functionality -->
     <h2>Find total volume</h2>
     <input type = "text" id = "volume-exercise" placeholder="Exercise name">
     <button onclick="getVolume()">Find Volume</button>
@@ -32,14 +38,16 @@
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({
                     exercise: document.getElementById('exercise').value,
-                    sets: document.getElementById('sets').value,
-                    reps: document.getElementById('reps').value,
-                    weight: document.getElementById('weight').value
+                    sets: parseInt(document.getElementById('sets').value),
+                    reps: parseInt(document.getElementById('reps').value),
+                    weight: parseFloat(document.getElementById('weight').value)
                  })
             })
             .then(response => response.json())
-            .then(data => console.log(data.message))
-            return;
+            .then(data => {
+                document.getElementById('workout-message').innerHTML = data.message
+                getWorkouts()
+            })
             }
 
             const getWorkouts = () => {

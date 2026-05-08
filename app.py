@@ -16,6 +16,15 @@ def get_workouts():
 @app.route('/workouts', methods= ['POST'])
 def add_workout():
     data = request.get_json()
+    sets = int(data["sets"])
+    reps = int(data["reps"])
+    weight = int(data["weight"])
+    if sets <= 0:
+        return jsonify({'message': 'Please enter a positive amount of sets.'}), 400
+    if reps <= 0:
+        return jsonify({'message': 'Please enter a positive amount of reps.'}), 400
+    if weight <= 0:
+        return jsonify({'message': 'Please enter a real weight.'}), 400
     w = Workout(data["exercise"], data["sets"], data["reps"], data["weight"], date= datetime.now())
     tracker.add_workout(w)
     return jsonify({'message' : 'Workout saved!'})
