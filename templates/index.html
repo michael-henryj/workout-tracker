@@ -50,6 +50,16 @@
             })
             }
 
+            const formatDate = (dateString) => {
+                const today = new Date()
+                const workoutDate = new Date(dateString)
+                if(today.toDateString() === workoutDate.toDateString()){
+                    return workoutDate.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})
+                } else {
+                    return workoutDate.toLocaleDateString([], {month: 'long', day: 'numeric', year: 'numeric'})
+                }
+            }
+
             const getWorkouts = () => {
             fetch('http://127.0.0.1:5000/workouts')
             .then(response => response.json())
@@ -57,7 +67,7 @@
             const list = document.getElementById('workout-list')
             list.innerHTML = ''
             data.forEach(workout => {
-                    list.innerHTML += `<li>${workout.date} | ${workout.exercise} | ${workout.sets} sets | ${workout.reps} reps | ${workout.weight} lbs</li>`
+                    list.innerHTML += `<li>${formatDate(workout.date)} | ${workout.exercise} | ${workout.sets} sets | ${workout.reps} reps | ${workout.weight} lbs</li>`
                     })
                 })
             }
