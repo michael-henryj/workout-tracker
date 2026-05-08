@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>Workout Tracker</title>
+        <style>
+            /* CSS goes here */
+        </style>
+    </head>
+    <body>
+    <h1>Workout Tracker</h1>
+    <input type="text" id="exercise" placeholder="Exercise name">
+    <input type="number" id="sets" placeholder="Number of sets">
+    <input type="number" id="reps" placeholder="Number or reps">
+    <input type="number" id="weight" placeholder="Weight (lbs)">
+    <button onclick="addWorkout()">Add Workout</button>
+    <button onclick = "getWorkouts()">Load Workouts</button>
+    <ul id = "workout-list"></ul>
+    <h2>Find Personal Record</h2>
+    <input type = "text" id = "pr-exercise" placeholder="Exercise name">
+    <button onclick="getPR()">Find PR</button>
+    <p id="pr-result"></p>
+
+    <h2>Find total volume</h2>
+    <input type = "text" id = "volume-exercise" placeholder="Exercise name">
+    <button onclick="getVolume()">Find Volume</button>
+    <p id="volume-result"></p>
+        <script>
+
+            const addWorkout = () => {
+            fetch('http://127.0.0.1:5000/workouts', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    exercise: document.getElementById('exercise').value,
+                    sets: document.getElementById('sets').value,
+                    reps: document.getElementById('reps').value,
+                    weight: document.getElementById('weight').value
+                 })
+            })
+            .then(response => response.json())
+            .then(data => console.log(data.message))
+            return;
+            }
+
+            const getWorkouts = () => {
+            fetch('http://127.0.0.1:5000/workouts')
+            .then(response => response.json())
+            .then(data => {
+            const list = document.getElementById('workout-list')
+            list.innerHTML = ''
+            data.forEach(workout => {
+                    list.innerHTML += `<li>${workout.date} | ${workout.exercise} | ${workout.sets} sets | ${workout.reps} reps | ${workout.weight} lbs</li>`
+                    })
+                })
+            }
+
+            const getPR = () => {
+                const exercise = document.getElementById('pr-exercise').value
+                fetch(`http://127.0.0.1:5000/workouts/pr/${exercise}`)
+                .then(response => response.json())
+                .then(data => {
+                    const result = document.getElementById('pr-result')
+                    if (data.message) {
+                        result.innerHTML = data.message
+                    } else {
+                        result.innerHTML = `${data.date} | ${data.exercise} | ${data.sets} sets | ${data.reps} reps | ${data.weight} lbs`
+                    }
+                })
+            }
+
+            const getVolume = () => {
+                const exercise = document.getElementById('volume-exercise').value
+                fetch(`http://127.0.0.1:5000/workouts/volume/${exercise}`)
+                .then(response => response.json())
+                .then(data => {
+                    const result = document.getElementById('volume-result')
+                    if (data.message){
+                        result.innerHTML = data.message
+                    } else {
+                        result.innerHTML = `Total Volume: ${data} lbs`
+                    }
+                })
+            }
+
+            window.onload = getWorkouts
+        </script>
+    </body>
+</html>
