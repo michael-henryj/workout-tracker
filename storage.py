@@ -38,6 +38,23 @@ def initialize_users_table():
 
 initialize_users_table()
 
+# Users profile created to store users body info
+def initialize_user_profiles_table():
+    with sqlite3.connect('workout_storage.db') as conn:
+        cursor = conn.cursor()
+        cursor.execute('''
+        CREATE TABLE IF NOT EXISTS user_profiles (
+            user_id INTEGER REFERENCES users(id),
+            height INTEGER,
+            weight INTEGER,
+            age INTEGER,
+            gender TEXT
+        )
+        ''')
+        conn.commit()
+
+initialize_user_profiles_table()
+
 # Saves users to the database
 def save_user(username, email, password_hash):
     from datetime import datetime
@@ -71,6 +88,33 @@ def get_user_by_id(user_id):
         if row:
             return User(row[0], row[1], row[2], row[3])
         return None
+
+# Saves user profiles
+def save_user_profile(user_id, height, weight, age, gender):
+    with sqlite3.connect('workout_storage.db') as conn:
+        cursor = conn.cursor()
+        cursor.execute('''
+        INSERT INTO user_profiles(user_id, height, weight, age, gender)
+        VALUES(?, ?, ?, ?, ?)
+        ''', (user_id, height, weight, age, gender))
+        conn.commit()
+
+# Loads a users profile based on the user id
+def load_user_profile(user_id):
+    with sqlite3.connect('workout_storage.db') as conn:
+        cursor = conn.cursor()
+        cursor.execute('SELECT * FROM user_profiles WHERE user_id = ?', (user_id,))
+        row = cursor.fetchone()
+        if row:
+            return {
+                'user_id': row[0],
+                'height': row[1],
+                'weight': row[2],
+                'age': row[3],
+                'gender': row[4]
+            }
+        return None
+
 
 # Saves workouts to the database
 def save_workout(workout, user_id):
