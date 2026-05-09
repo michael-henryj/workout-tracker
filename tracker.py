@@ -1,18 +1,19 @@
 from storage import save_workout, load_workouts, delete_by_id, delete_by_date, delete_all
+from flask_login import current_user
 
 class WorkoutTracker:
-    def __init__(self):
+    def __init__(self, user_id):
         self.workouts = []
-        self.load_all()
+        self.load_all(user_id)
 
     # Function creates a workout object then saves it to the SQLite database
-    def add_workout(self, workout):
-        save_workout(workout)
-        self.workouts = load_workouts()
+    def add_workout(self, workout, user_id):
+        save_workout(workout, user_id)
+        self.workouts = load_workouts(user_id)
 
     # Function unnecessary with the use of a SQLite database
-    def load_all(self):
-        self.workouts = load_workouts()
+    def load_all(self, user_id):
+        self.workouts = load_workouts(user_id)
 
     # Function unnecessary with the use of a SQLite database
     def display_all(self):
@@ -48,16 +49,16 @@ class WorkoutTracker:
         return [w.to_dict() for w in self.workouts]
 
     # Method deletes specific exercises
-    def delete_id(self, exercise_id):
+    def delete_id(self, exercise_id, user_id):
         delete_by_id(exercise_id)
-        self.workouts = load_workouts()
+        self.workouts = load_workouts(user_id)
 
     # Method deletes workouts for certain dates
-    def delete_date(self, exercise_date):
+    def delete_date(self, exercise_date, user_id):
         delete_by_date(exercise_date)
-        self.workouts = load_workouts()
+        self.workouts = load_workouts(user_id)
 
     # Method RESETS the whole database
-    def reset(self):
-        delete_all()
-        self.workouts = load_workouts()
+    def reset(self, user_id):
+        delete_all(user_id)
+        self.workouts = load_workouts(user_id)

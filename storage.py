@@ -1,5 +1,6 @@
 import sqlite3
 from workout import Workout
+from models import User
 
 # When program is run the database is created or reinitialized
 def initialize_db():
@@ -8,6 +9,7 @@ def initialize_db():
         cursor.execute('''
         CREATE TABLE IF NOT EXISTS workouts (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER REFERENCES users(id),
             exercise TEXT,
             sets INTEGER,
             reps INTEGER,
@@ -19,24 +21,75 @@ def initialize_db():
 
 initialize_db()
 
-# Saves workouts to the database
-def save_workout(workout):
+# User table is created allowing the user to sign up
+def initialize_users_table():
     with sqlite3.connect('workout_storage.db') as conn:
         cursor = conn.cursor()
         cursor.execute('''
-        INSERT INTO workouts VALUES (NULL, ?, ?, ?, ?, ?)
-        ''', (workout.exercise, workout.sets, workout.reps, workout.weight, workout.date))
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE NOT NULL,
+            email TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL,
+            created_at TEXT
+        )
+        ''')
+        conn.commit()
+
+initialize_users_table()
+
+# Saves users to the database
+def save_user(username, email, password_hash):
+    from datetime import datetime
+    with sqlite3.connect('workout_storage.db') as conn:
+        cursor = conn.cursor()
+        cursor.execute('''
+        INSERT INTO users (username, email, password_hash, created_at)
+        VALUES (?, ?, ?, ?)
+        ''', (username, email, password_hash, str(datetime.now()))
+        )
+        conn.commit()
+
+# Finds users by their usernames
+def get_user_by_username(username):
+    from models import User
+    with sqlite3.connect('workout_storage.db') as conn:
+        cursor = conn.cursor()
+        cursor.execute('SELECT * FROM users WHERE username = ?', (username,))
+        row = cursor.fetchone()
+        if row:
+            return User(row[0], row[1], row[2], row[3])
+        return None
+
+# Finds users by their id
+def get_user_by_id(user_id):
+    from models import User
+    with sqlite3.connect('workout_storage.db') as conn:
+        cursor = conn.cursor()
+        cursor.execute('SELECT * FROM users WHERE id = ?', (user_id,))
+        row = cursor.fetchone()
+        if row:
+            return User(row[0], row[1], row[2], row[3])
+        return None
+
+# Saves workouts to the database
+def save_workout(workout, user_id):
+    with sqlite3.connect('workout_storage.db') as conn:
+        cursor = conn.cursor()
+        cursor.execute('''
+        INSERT INTO workouts VALUES (NULL, ?, ?, ?, ?, ?, ?)
+        ''', (user_id, workout.exercise, workout.sets, workout.reps, workout.weight, workout.date))
         conn.commit()
 
 # Loads workouts from the database
-def load_workouts():
+def load_workouts(user_id):
     with sqlite3.connect('workout_storage.db') as conn:
         cursor = conn.cursor()
-        cursor.execute('SELECT * FROM workouts')
+        cursor.execute('SELECT * FROM workouts WHERE user_id = ?', (user_id,))
         rows = cursor.fetchall()
         el = []
         for row in rows:
-                w = Workout(row[1], int(row[2]), int(row[3]), float(row[4]), (row[5]), id = row[0])
+                w = Workout(row[2], int(row[3]), int(row[4]), float(row[5]), (row[6]),user_id = row[1], id = row[0])
                 el.append(w)
         return el
 
@@ -55,8 +108,8 @@ def delete_by_date(workout_date):
         conn.commit()
 
 # Will completely reset the entire database
-def delete_all():
+def delete_all(user_id):
     with sqlite3.connect('workout_storage.db') as conn:
         cursor = conn.cursor()
-        cursor.execute('DELETE FROM workouts')
+        cursor.execute('DELETE FROM workouts WHERE user_id = ?', (user_id,))
         conn.commit()
