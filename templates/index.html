@@ -1,149 +1,595 @@
 <!DOCTYPE html>
 <html lang="en">
-    <head>
-        <title>Workout Tracker</title>
-        <style>
-            /* CSS goes here */
-        </style>
-    </head>
-    <body>
-    <h1>Workout Tracker</h1>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WorkoutOS — Track Your Gains</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@200;300;400;500;600&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
-    <!--Saving workouts functionality-->
-    <input type="text" id="exercise" placeholder="Exercise name">
-    <input type="number" min="0" id="sets" placeholder="Number of sets">
-    <input type="number" min="0" id="reps" placeholder="Number or reps">
-    <input type="number" min="0" id="weight" placeholder="Weight (lbs)">
-    <button onclick="addWorkout()">Add Workout</button>
-    <p id="workout-message"></p>
-    <button onclick = "getWorkouts()">Load Workouts</button>
-    <input type="date" id="delete-date">
-    <button onclick="deleteByDate()">Delete by Date</button>
-    <button onclick="resetALL()">Reset All Workouts</button>
-    <ul id = "workout-list"></ul>
+        :root {
+            --primary: #00f0ff;
+            --secondary: #ff00d4;
+            --accent: #9d4edd;
+            --dark-1: #0a0a12;
+            --dark-2: #12121f;
+            --dark-3: #1a1a2e;
+            --glass-bg: rgba(255,255,255,0.03);
+            --glass-border: rgba(255,255,255,0.08);
+            --glow-cyan: rgba(0,240,255,0.4);
+            --glow-magenta: rgba(255,0,212,0.4);
+        }
 
-    <!--Personal record functionality-->
-    <h2>Find Personal Record</h2>
-    <input type = "text" id = "pr-exercise" placeholder="Exercise name">
-    <button onclick="getPR()">Find PR</button>
-    <p id="pr-result"></p>
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--dark-1);
+            color: #fff;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
 
-    <!--Volume functionality -->
-    <h2>Find total volume</h2>
-    <input type = "text" id = "volume-exercise" placeholder="Exercise name">
-    <button onclick="getVolume()">Find Volume</button>
-    <p id="volume-result"></p>
-        <script>
+        .ambient-bg {
+            position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none; z-index: 0; overflow: hidden;
+        }
+        .orb {
+            position: absolute; border-radius: 50%;
+            filter: blur(80px);
+            animation: float 20s ease-in-out infinite;
+        }
+        .orb-1 {
+            width: 600px; height: 600px;
+            background: radial-gradient(circle, var(--glow-cyan) 0%, transparent 70%);
+            top: -200px; left: -200px; animation-delay: 0s;
+        }
+        .orb-2 {
+            width: 500px; height: 500px;
+            background: radial-gradient(circle, var(--glow-magenta) 0%, transparent 70%);
+            bottom: -150px; right: -150px; animation-delay: -7s;
+        }
+        .orb-3 {
+            width: 400px; height: 400px;
+            background: radial-gradient(circle, rgba(157,78,221,0.3) 0%, transparent 70%);
+            top: 50%; left: 50%;
+            transform: translate(-50%,-50%); animation-delay: -14s;
+        }
+        @keyframes float {
+            0%,100% { transform: translate(0,0) scale(1); }
+            25% { transform: translate(50px,-30px) scale(1.05); }
+            50% { transform: translate(-30px,50px) scale(0.95); }
+            75% { transform: translate(-50px,-20px) scale(1.02); }
+        }
 
-            const addWorkout = () => {
-            fetch('http://127.0.0.1:5000/workouts', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                    exercise: document.getElementById('exercise').value,
-                    sets: parseInt(document.getElementById('sets').value),
-                    reps: parseInt(document.getElementById('reps').value),
-                    weight: parseFloat(document.getElementById('weight').value)
-                 })
+        .grid-overlay {
+            position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%;
+            background-image:
+                linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px);
+            background-size: 80px 80px;
+            pointer-events: none; z-index: 1;
+        }
+
+        .loading-screen {
+            position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: var(--dark-1); z-index: 10000;
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+            transition: opacity 0.8s ease, visibility 0.8s ease;
+        }
+        .loading-screen.hidden { opacity: 0; visibility: hidden; }
+        .loader-ring { width: 80px; height: 80px; position: relative; }
+        .loader-ring::before, .loader-ring::after {
+            content: ''; position: absolute; border-radius: 50%;
+            border: 2px solid transparent;
+        }
+        .loader-ring::before {
+            top:0;left:0;right:0;bottom:0;
+            border-top-color: var(--primary);
+            border-right-color: var(--primary);
+            animation: spin 1.2s linear infinite;
+        }
+        .loader-ring::after {
+            top:10px;left:10px;right:10px;bottom:10px;
+            border-bottom-color: var(--secondary);
+            border-left-color: var(--secondary);
+            animation: spin 0.8s linear infinite reverse;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .loading-text {
+            margin-top: 30px;
+            font-family: 'Syne', sans-serif;
+            font-size: 12px; letter-spacing: 4px;
+            color: var(--primary); text-transform: uppercase;
+        }
+
+        .container {
+            position: relative; z-index: 10;
+            padding: 40px 20px;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 50px;
+            animation: fadeDown 0.6s ease-out forwards;
+        }
+        @keyframes fadeDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .brand-name {
+            font-family: 'Syne', sans-serif;
+            font-size: 52px; font-weight: 800;
+            letter-spacing: 6px; text-transform: uppercase;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .tagline {
+            font-size: 11px; letter-spacing: 4px;
+            color: rgba(255,255,255,0.4);
+            text-transform: uppercase; margin-top: 8px;
+        }
+
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 40px;
+        }
+        .menu-item {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 24px 16px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            animation: fadeUp 0.5s ease-out forwards;
+            opacity: 0;
+        }
+        .menu-item:nth-child(1) { animation-delay: 0.1s; }
+        .menu-item:nth-child(2) { animation-delay: 0.2s; }
+        .menu-item:nth-child(3) { animation-delay: 0.3s; }
+        .menu-item:nth-child(4) { animation-delay: 0.4s; }
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .menu-item:hover {
+            border-color: var(--primary);
+            box-shadow: 0 0 30px rgba(0,240,255,0.15);
+            transform: translateY(-4px);
+        }
+        .menu-badge {
+            width: 52px; height: 52px;
+            margin: 0 auto 12px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, rgba(0,240,255,0.2), rgba(157,78,221,0.2));
+            border: 1px solid var(--glass-border);
+            display: flex; align-items: center; justify-content: center;
+            font-family: 'Syne', sans-serif;
+            font-size: 16px; font-weight: 700;
+            color: var(--primary);
+        }
+        .menu-title {
+            font-size: 11px; letter-spacing: 2px;
+            text-transform: uppercase;
+            color: rgba(255,255,255,0.6);
+            font-weight: 500;
+        }
+
+        .panel { display: none; animation: fadeUp 0.4s ease-out forwards; }
+        .panel.active { display: block; }
+
+        .glass-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 32px;
+            backdrop-filter: blur(10px);
+            margin-bottom: 20px;
+        }
+
+        .panel-label {
+            font-size: 10px; letter-spacing: 4px;
+            text-transform: uppercase;
+            color: var(--primary); margin-bottom: 6px;
+        }
+        .panel-title {
+            font-family: 'Syne', sans-serif;
+            font-size: 28px; font-weight: 700;
+            margin-bottom: 24px; letter-spacing: 1px;
+        }
+
+        .input-group { display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; }
+        .input-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+
+        input[type="text"],
+        input[type="number"],
+        input[type="date"] {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid var(--glass-border);
+            border-radius: 10px;
+            color: #fff;
+            font-family: 'Outfit', sans-serif;
+            font-size: 15px;
+            padding: 14px 16px;
+            width: 100%;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        input::placeholder { color: rgba(255,255,255,0.25); }
+        input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(0,240,255,0.1);
+        }
+        input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.4); }
+
+        .btn {
+            font-family: 'Syne', sans-serif;
+            font-size: 13px; font-weight: 600;
+            letter-spacing: 2px; text-transform: uppercase;
+            padding: 14px 28px;
+            border: none; border-radius: 10px;
+            cursor: pointer; transition: all 0.2s; width: 100%;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            color: var(--dark-1);
+        }
+        .btn-primary:hover {
+            box-shadow: 0 0 30px rgba(0,240,255,0.4);
+            transform: translateY(-2px);
+        }
+        .btn-secondary {
+            background: linear-gradient(135deg, var(--secondary), var(--accent));
+            color: #fff;
+        }
+        .btn-secondary:hover {
+            box-shadow: 0 0 30px rgba(255,0,212,0.4);
+            transform: translateY(-2px);
+        }
+        .btn-ghost {
+            background: transparent;
+            border: 1px solid var(--glass-border);
+            color: rgba(255,255,255,0.5);
+        }
+        .btn-ghost:hover { border-color: var(--primary); color: var(--primary); }
+        .btn-danger-sm {
+            background: transparent;
+            border: 1px solid rgba(255,0,212,0.3);
+            color: rgba(255,0,212,0.6);
+            font-family: 'Syne', sans-serif;
+            font-size: 11px; letter-spacing: 1px;
+            padding: 8px 14px; border-radius: 8px;
+            cursor: pointer; transition: all 0.2s;
+            text-transform: uppercase;
+        }
+        .btn-danger-sm:hover {
+            background: rgba(255,0,212,0.1);
+            border-color: var(--secondary);
+            color: var(--secondary);
+        }
+        .btn-danger-full {
+            background: transparent;
+            border: 1px solid rgba(255,0,212,0.3);
+            color: rgba(255,0,212,0.6);
+            font-family: 'Syne', sans-serif;
+            font-size: 12px; letter-spacing: 2px;
+            padding: 12px; border-radius: 10px;
+            cursor: pointer; transition: all 0.2s;
+            text-transform: uppercase; width: 100%;
+            margin-top: 8px;
+        }
+        .btn-danger-full:hover {
+            background: rgba(255,0,212,0.08);
+            border-color: var(--secondary);
+            color: var(--secondary);
+        }
+
+        .message {
+            font-size: 12px; letter-spacing: 1px;
+            text-transform: uppercase; min-height: 20px;
+            margin-top: 14px; color: rgba(255,255,255,0.35);
+        }
+        .message.ok { color: var(--primary); }
+        .message.err { color: var(--secondary); }
+
+        #workout-list {
+            list-style: none;
+            display: flex; flex-direction: column; gap: 10px;
+            max-height: 380px; overflow-y: auto; padding-right: 4px;
+        }
+        #workout-list::-webkit-scrollbar { width: 3px; }
+        #workout-list::-webkit-scrollbar-track { background: transparent; }
+        #workout-list::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 2px; }
+        #workout-list li {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--glass-border);
+            border-left: 2px solid var(--primary);
+            border-radius: 10px;
+            padding: 14px 18px;
+            display: flex; justify-content: space-between; align-items: center;
+            transition: background 0.2s, border-color 0.2s;
+        }
+        #workout-list li:hover {
+            background: rgba(0,240,255,0.04);
+            border-color: rgba(0,240,255,0.3);
+        }
+        .workout-info { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+        .workout-date { color: rgba(255,255,255,0.3); font-size: 12px; letter-spacing: 1px; }
+        .workout-name {
+            font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 600;
+            color: var(--primary); letter-spacing: 1px;
+        }
+        .workout-stats { color: rgba(255,255,255,0.45); font-size: 13px; }
+
+        .result-box {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px; padding: 18px;
+            min-height: 60px; font-size: 14px;
+            color: rgba(255,255,255,0.35);
+            margin-top: 14px; letter-spacing: 0.5px;
+            transition: border-color 0.3s, color 0.3s;
+        }
+        .result-box.has-data { border-color: rgba(0,240,255,0.3); color: #fff; }
+
+        .divider { border: none; border-top: 1px solid var(--glass-border); margin: 20px 0; }
+
+        .delete-row {
+            display: grid; grid-template-columns: 1fr auto;
+            gap: 12px; align-items: end; margin-bottom: 10px;
+        }
+
+        .back-btn {
+            font-family: 'Syne', sans-serif;
+            font-size: 11px; letter-spacing: 2px; text-transform: uppercase;
+            background: transparent; border: 1px solid var(--glass-border);
+            color: rgba(255,255,255,0.4); padding: 8px 16px; border-radius: 8px;
+            cursor: pointer; margin-bottom: 24px; transition: all 0.2s;
+        }
+        .back-btn:hover { border-color: var(--primary); color: var(--primary); }
+
+        @media (max-width: 768px) {
+            .menu-grid { grid-template-columns: repeat(2, 1fr); }
+            .input-row { grid-template-columns: 1fr; }
+            .brand-name { font-size: 36px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="loading-screen" id="loadingScreen">
+    <div class="loader-ring"></div>
+    <div class="loading-text">Loading WorkoutOS...</div>
+</div>
+
+<div class="ambient-bg">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+</div>
+<div class="grid-overlay"></div>
+
+<div class="container">
+    <div class="header">
+        <h1 class="brand-name">WorkoutOS</h1>
+        <p class="tagline">Track · Analyze · Dominate</p>
+    </div>
+
+    <div class="menu-grid">
+        <div class="menu-item" onclick="showPanel('log')">
+            <div class="menu-badge">LG</div>
+            <div class="menu-title">Log Workout</div>
+        </div>
+        <div class="menu-item" onclick="showPanel('history')">
+            <div class="menu-badge">HX</div>
+            <div class="menu-title">History</div>
+        </div>
+        <div class="menu-item" onclick="showPanel('pr')">
+            <div class="menu-badge">PR</div>
+            <div class="menu-title">Personal Record</div>
+        </div>
+        <div class="menu-item" onclick="showPanel('volume')">
+            <div class="menu-badge">VL</div>
+            <div class="menu-title">Volume</div>
+        </div>
+    </div>
+
+    <!-- Log Panel -->
+    <div class="panel" id="panel-log">
+        <button class="back-btn" onclick="hidePanel('log')">← Back</button>
+        <div class="glass-card">
+            <div class="panel-label">Session Entry</div>
+            <div class="panel-title">Log Workout</div>
+            <div class="input-group">
+                <input type="text" id="exercise" placeholder="Exercise name (e.g. Squat)">
+                <div class="input-row">
+                    <input type="number" min="1" id="sets" placeholder="Sets">
+                    <input type="number" min="1" id="reps" placeholder="Reps">
+                    <input type="number" min="1" id="weight" placeholder="Weight (lbs)">
+                </div>
+            </div>
+            <button class="btn btn-primary" onclick="addWorkout()">Log Session</button>
+            <p class="message" id="workout-message"></p>
+        </div>
+    </div>
+
+    <!-- History Panel -->
+    <div class="panel" id="panel-history">
+        <button class="back-btn" onclick="hidePanel('history')">← Back</button>
+        <div class="glass-card">
+            <div class="panel-label">Session Archive</div>
+            <div class="panel-title">Workout History</div>
+            <ul id="workout-list"></ul>
+            <hr class="divider">
+            <div class="delete-row">
+                <input type="date" id="delete-date">
+                <button class="btn btn-ghost" onclick="deleteByDate()" style="width:auto; padding:14px 20px;">Delete Day</button>
+            </div>
+            <button class="btn-danger-full" onclick="resetALL()">⚠ Reset All Data</button>
+        </div>
+    </div>
+
+    <!-- PR Panel -->
+    <div class="panel" id="panel-pr">
+        <button class="back-btn" onclick="hidePanel('pr')">← Back</button>
+        <div class="glass-card">
+            <div class="panel-label">Peak Performance</div>
+            <div class="panel-title">Personal Record</div>
+            <input type="text" id="pr-exercise" placeholder="Exercise name">
+            <button class="btn btn-primary" onclick="getPR()" style="margin-top:12px;">Find PR</button>
+            <div class="result-box" id="pr-result">Your personal record will appear here</div>
+        </div>
+    </div>
+
+    <!-- Volume Panel -->
+    <div class="panel" id="panel-volume">
+        <button class="back-btn" onclick="hidePanel('volume')">← Back</button>
+        <div class="glass-card">
+            <div class="panel-label">Total Output</div>
+            <div class="panel-title">Volume Calculator</div>
+            <input type="text" id="volume-exercise" placeholder="Exercise name">
+            <button class="btn btn-secondary" onclick="getVolume()" style="margin-top:12px;">Calculate Volume</button>
+            <div class="result-box" id="volume-result">Your total volume will appear here</div>
+        </div>
+    </div>
+</div>
+
+<script>
+    window.addEventListener('load', () => {
+        setTimeout(() => {
+            document.getElementById('loadingScreen').classList.add('hidden')
+        }, 1200)
+    })
+
+    const showPanel = (name) => {
+        document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'))
+        document.getElementById(`panel-${name}`).classList.add('active')
+        if (name === 'history') getWorkouts()
+    }
+
+    const hidePanel = (name) => {
+        document.getElementById(`panel-${name}`).classList.remove('active')
+    }
+
+    const formatDate = (dateString) => {
+        const today = new Date()
+        const workoutDate = new Date(dateString)
+        if (today.toDateString() === workoutDate.toDateString()) {
+            return workoutDate.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})
+        } else {
+            return workoutDate.toLocaleDateString([], {month: 'long', day: 'numeric', year: 'numeric'})
+        }
+    }
+
+    const addWorkout = () => {
+        fetch('http://127.0.0.1:5000/workouts', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                exercise: document.getElementById('exercise').value,
+                sets: parseInt(document.getElementById('sets').value),
+                reps: parseInt(document.getElementById('reps').value),
+                weight: parseFloat(document.getElementById('weight').value)
             })
-            .then(response => response.json())
-            .then(data => {
-                document.getElementById('workout-message').innerHTML = data.message
-                getWorkouts()
-            })
-            }
+        })
+        .then(r => r.json())
+        .then(data => {
+            const msg = document.getElementById('workout-message')
+            msg.textContent = data.message
+            msg.className = 'message ' + (data.message.includes('saved') ? 'ok' : 'err')
+        })
+    }
 
-            const formatDate = (dateString) => {
-                const today = new Date()
-                const workoutDate = new Date(dateString)
-                if(today.toDateString() === workoutDate.toDateString()){
-                    return workoutDate.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})
-                } else {
-                    return workoutDate.toLocaleDateString([], {month: 'long', day: 'numeric', year: 'numeric'})
-                }
-            }
-
-            const getWorkouts = () => {
-            fetch('http://127.0.0.1:5000/workouts')
-            .then(response => response.json())
-            .then(data => {
+    const getWorkouts = () => {
+        fetch('http://127.0.0.1:5000/workouts')
+        .then(r => r.json())
+        .then(data => {
             const list = document.getElementById('workout-list')
             list.innerHTML = ''
+            if (data.length === 0) {
+                list.innerHTML = '<li style="justify-content:center; color:rgba(255,255,255,0.3); border-left-color:transparent;">No workouts logged yet</li>'
+                return
+            }
             data.forEach(workout => {
-                    list.innerHTML += `<li>
-                        ${formatDate(workout.date)} | ${workout.exercise} | ${workout.sets} sets | ${workout.reps} reps | ${workout.weight} lbs
-                        <button onclick="deleteWorkout(${workout.id})">Delete</button>
-                    </li>`
-                    })
-                })
-            }
+                list.innerHTML += `
+                <li>
+                    <div class="workout-info">
+                        <span class="workout-date">${formatDate(workout.date)}</span>
+                        <span class="workout-name">${workout.exercise}</span>
+                        <span class="workout-stats">${workout.sets} sets · ${workout.reps} reps · ${workout.weight} lbs</span>
+                    </div>
+                    <button class="btn-danger-sm" onclick="deleteWorkout(${workout.id})">Remove</button>
+                </li>`
+            })
+        })
+    }
 
-            const deleteWorkout = (id) => {
-                fetch(`http://127.0.0.1:5000/workouts/${id}`, {
-                    method: 'DELETE'
-                })
-                .then(response => response.json())
-                .then(data => {
-                    document.getElementById('workout-message').innerHTML = data.message
-                    getWorkouts()
-                })
-            }
+    const deleteWorkout = (id) => {
+        fetch(`http://127.0.0.1:5000/workouts/${id}`, {method: 'DELETE'})
+        .then(r => r.json())
+        .then(() => getWorkouts())
+    }
 
-            const deleteByDate = () => {
-                const date = document.getElementById('delete-date').value
-                fetch(`http://127.0.0.1:5000/workouts/date/${date}`, {
-                    method: 'DELETE'
-                })
-                .then(response => response.json())
-                .then(data => {
-                    document.getElementById('workout-message').innerHTML = data.message
-                    getWorkouts()
-                })
-            }
+    const deleteByDate = () => {
+        const date = document.getElementById('delete-date').value
+        if (!date) return
+        fetch(`http://127.0.0.1:5000/workouts/date/${date}`, {method: 'DELETE'})
+        .then(r => r.json())
+        .then(() => getWorkouts())
+    }
 
-            const resetALL = () => {
-                if (confirm(`Are you sure you want to delete all workouts?
-                               This action can NOT be undone.`)){
-                    fetch('http://127.0.0.1:5000/workouts/all', {
-                        method: 'DELETE'
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                    document.getElementById('workout-message').innerHTML = data.message
-                    getWorkouts()
-                    })
-                    }
-            }
+    const resetALL = () => {
+        if (confirm('Are you sure you want to delete ALL workouts?\nThis action cannot be undone.')) {
+            fetch('http://127.0.0.1:5000/workouts/all', {method: 'DELETE'})
+            .then(r => r.json())
+            .then(() => getWorkouts())
+        }
+    }
 
-            const getPR = () => {
-                const exercise = document.getElementById('pr-exercise').value
-                fetch(`http://127.0.0.1:5000/workouts/pr/${exercise}`)
-                .then(response => response.json())
-                .then(data => {
-                    const result = document.getElementById('pr-result')
-                    if (data.message) {
-                        result.innerHTML = data.message
-                    } else {
-                        result.innerHTML = `${formatDate(workout.date)} | ${data.exercise} | ${data.sets} sets | ${data.reps} reps | ${data.weight} lbs`
-                    }
-                })
+    const getPR = () => {
+        const exercise = document.getElementById('pr-exercise').value
+        const box = document.getElementById('pr-result')
+        fetch(`http://127.0.0.1:5000/workouts/pr/${exercise}`)
+        .then(r => r.json())
+        .then(data => {
+            if (data.message) {
+                box.textContent = data.message
+                box.classList.remove('has-data')
+            } else {
+                box.innerHTML = `${formatDate(data.date)} &nbsp;·&nbsp; <strong>${data.exercise}</strong> &nbsp;·&nbsp; ${data.sets} sets · ${data.reps} reps · ${data.weight} lbs`
+                box.classList.add('has-data')
             }
+        })
+    }
 
-            const getVolume = () => {
-                const exercise = document.getElementById('volume-exercise').value
-                fetch(`http://127.0.0.1:5000/workouts/volume/${exercise}`)
-                .then(response => response.json())
-                .then(data => {
-                    const result = document.getElementById('volume-result')
-                    if (data.message){
-                        result.innerHTML = data.message
-                    } else {
-                        result.innerHTML = `Total Volume: ${data} lbs`
-                    }
-                })
+    const getVolume = () => {
+        const exercise = document.getElementById('volume-exercise').value
+        const box = document.getElementById('volume-result')
+        fetch(`http://127.0.0.1:5000/workouts/volume/${exercise}`)
+        .then(r => r.json())
+        .then(data => {
+            if (data.message) {
+                box.textContent = data.message
+                box.classList.remove('has-data')
+            } else {
+                box.innerHTML = `Total Volume: <strong>${data.toLocaleString()} lbs</strong>`
+                box.classList.add('has-data')
             }
-
-            window.onload = getWorkouts
-        </script>
-    </body>
+        })
+    }
+</script>
+</body>
 </html>
