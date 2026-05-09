@@ -18,16 +18,35 @@ def add_workout():
     data = request.get_json()
     sets = int(data["sets"])
     reps = int(data["reps"])
-    weight = int(data["weight"])
+    weight = float(data["weight"])
     if sets <= 0:
         return jsonify({'message': 'Please enter a positive amount of sets.'}), 400
     if reps <= 0:
         return jsonify({'message': 'Please enter a positive amount of reps.'}), 400
     if weight <= 0:
         return jsonify({'message': 'Please enter a real weight.'}), 400
-    w = Workout(data["exercise"], data["sets"], data["reps"], data["weight"], date= datetime.now())
+    w = Workout(data["exercise"], sets, reps, weight, date= datetime.now())
     tracker.add_workout(w)
     return jsonify({'message' : 'Workout saved!'})
+
+# Deletes by exercise ID
+@app.route('/workouts/<int:id>', methods=['DELETE'])
+def delete_workout(id):
+    tracker.delete_id(id)
+    return jsonify({'message': 'Workout deleted!'})
+
+# Deletes by date
+@app.route('/workouts/date/<date>', methods=['DELETE'])
+def delete_date(date):
+    tracker.delete_date(date)
+    return jsonify({'message': f'Workouts for {date} deleted!'})
+
+# RESETS the db
+@app.route('/workouts/all', methods=['DELETE'])
+def delete_all():
+    tracker.reset()
+    return jsonify({'message': f'All workouts have been deleted!'})
+
 
 # Shows the Personal Record exercise
 @app.route('/workouts/pr/<exercise>', methods=['GET'])

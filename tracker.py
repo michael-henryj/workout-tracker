@@ -1,4 +1,4 @@
-from storage import save_workout, load_workouts
+from storage import save_workout, load_workouts, delete_by_id, delete_by_date, delete_all
 
 class WorkoutTracker:
     def __init__(self):
@@ -7,8 +7,8 @@ class WorkoutTracker:
 
     # Function creates a workout object then saves it to the SQLite database
     def add_workout(self, workout):
-        self.workouts.append(workout)
         save_workout(workout)
+        self.workouts = load_workouts()
 
     # Function unnecessary with the use of a SQLite database
     def load_all(self):
@@ -46,3 +46,18 @@ class WorkoutTracker:
     # Method changes workouts into a dictionary for json
     def get_all(self):
         return [w.to_dict() for w in self.workouts]
+
+    # Method deletes specific exercises
+    def delete_id(self, exercise_id):
+        delete_by_id(exercise_id)
+        self.workouts = load_workouts()
+
+    # Method deletes workouts for certain dates
+    def delete_date(self, exercise_date):
+        delete_by_date(exercise_date)
+        self.workouts = load_workouts()
+
+    # Method RESETS the whole database
+    def reset(self):
+        delete_all()
+        self.workouts = load_workouts()

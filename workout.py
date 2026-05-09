@@ -1,5 +1,6 @@
 class Workout:
-    def __init__(self, exercise, sets, reps, weight, date):
+    def __init__(self, exercise, sets, reps, weight, date, id = None):
+        self.id = id
         self.exercise = exercise
         self.sets = sets
         self.reps = reps
@@ -10,5 +11,5 @@ class Workout:
         return f"{self.date} | {self.exercise} | {self.sets} sets | {self.reps} reps | {self.weight} lbs"
 
     def to_dict(self):
-        return {'exercise': self.exercise, 'sets': self.sets, 'reps': self.reps, 'weight': self.weight,
+        return {'id': self.id, 'exercise': self.exercise, 'sets': self.sets, 'reps': self.reps, 'weight': self.weight,
                 'date': self.date}

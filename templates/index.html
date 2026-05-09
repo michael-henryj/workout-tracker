@@ -17,6 +17,9 @@
     <button onclick="addWorkout()">Add Workout</button>
     <p id="workout-message"></p>
     <button onclick = "getWorkouts()">Load Workouts</button>
+    <input type="date" id="delete-date">
+    <button onclick="deleteByDate()">Delete by Date</button>
+    <button onclick="resetALL()">Reset All Workouts</button>
     <ul id = "workout-list"></ul>
 
     <!--Personal record functionality-->
@@ -67,9 +70,49 @@
             const list = document.getElementById('workout-list')
             list.innerHTML = ''
             data.forEach(workout => {
-                    list.innerHTML += `<li>${formatDate(workout.date)} | ${workout.exercise} | ${workout.sets} sets | ${workout.reps} reps | ${workout.weight} lbs</li>`
+                    list.innerHTML += `<li>
+                        ${formatDate(workout.date)} | ${workout.exercise} | ${workout.sets} sets | ${workout.reps} reps | ${workout.weight} lbs
+                        <button onclick="deleteWorkout(${workout.id})">Delete</button>
+                    </li>`
                     })
                 })
+            }
+
+            const deleteWorkout = (id) => {
+                fetch(`http://127.0.0.1:5000/workouts/${id}`, {
+                    method: 'DELETE'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('workout-message').innerHTML = data.message
+                    getWorkouts()
+                })
+            }
+
+            const deleteByDate = () => {
+                const date = document.getElementById('delete-date').value
+                fetch(`http://127.0.0.1:5000/workouts/date/${date}`, {
+                    method: 'DELETE'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('workout-message').innerHTML = data.message
+                    getWorkouts()
+                })
+            }
+
+            const resetALL = () => {
+                if (confirm(`Are you sure you want to delete all workouts?
+                               This action can NOT be undone.`)){
+                    fetch('http://127.0.0.1:5000/workouts/all', {
+                        method: 'DELETE'
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                    document.getElementById('workout-message').innerHTML = data.message
+                    getWorkouts()
+                    })
+                    }
             }
 
             const getPR = () => {
@@ -81,7 +124,7 @@
                     if (data.message) {
                         result.innerHTML = data.message
                     } else {
-                        result.innerHTML = `${data.date} | ${data.exercise} | ${data.sets} sets | ${data.reps} reps | ${data.weight} lbs`
+                        result.innerHTML = `${formatDate(workout.date)} | ${data.exercise} | ${data.sets} sets | ${data.reps} reps | ${data.weight} lbs`
                     }
                 })
             }
